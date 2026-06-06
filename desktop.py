@@ -15,9 +15,9 @@ from pathlib import Path
 
 # ── Keep runtime files (.env, data/, logs/) next to the executable ──
 if getattr(sys, "frozen", False):
-    _exe_dir = os.path.dirname(sys.executable)
-    os.chdir(_exe_dir)
-    os.environ.setdefault("ODYSSEUS_BASE_DIR", _exe_dir)
+    _bundle_dir = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    os.chdir(_bundle_dir)
+    os.environ.setdefault("ODYSSEUS_BASE_DIR", _bundle_dir)
 
 LOG_PATH = Path("desktop.log")
 

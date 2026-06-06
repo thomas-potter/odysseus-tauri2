@@ -7,8 +7,8 @@ APP_VERSION = "0.9.1"
 
 # Base paths
 if getattr(sys, "frozen", False):
-    # PyInstaller (.exe) — static files live next to the executable
-    BASE_DIR = os.path.dirname(sys.executable) + "/"
+    # PyInstaller onedir: everything lives in sys._MEIPASS (usually .../_internal)
+    BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable)) + "/"
 else:
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/"
 STATIC_DIR = os.path.join(BASE_DIR, "static")

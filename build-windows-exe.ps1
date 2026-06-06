@@ -67,26 +67,34 @@ if ($BuildExit -ne 0) {
     exit 1
 }
 
-# ── Post-build: copy runtime data ──
-$Dist = "$Repo\dist\Odysseus"
+# ── Post-build: copy runtime data into _internal (where the app looks when frozen) ──
+$Internal = "$Repo\dist\Odysseus\_internal"
+
+if (-not (Test-Path $Internal)) {
+    Write-Host "WARNING: _internal folder not found after build. Skipping data copy." -ForegroundColor Yellow
+}
 
 if (Test-Path "$Repo\.env") {
-    Copy-Item "$Repo\.env" "$Dist\.env" -Force
-    Write-Host "Copied existing .env into dist/Odysseus/"
+    Copy-Item "$Repo\.env" "$Internal\.env" -Force
+    Write-Host "Copied existing .env into _internal/"
 }
 if (Test-Path "$Repo\data") {
-    Copy-Item "$Repo\data" "$Dist\data" -Recurse -Force
-    Write-Host "Copied existing data/ into dist/Odysseus/"
+    Copy-Item "$Repo\data" "$Internal\data" -Recurse -Force
+    Write-Host "Copied existing data/ into _internal/"
+}
+
+if (Test-Path "$Repo\dist\Odysseus\desktop.log") {
+    Remove-Item "$Repo\dist\Odysseus\desktop.log" -ErrorAction SilentlyContinue
 }
 
 # ── Done ──
 Write-Host ""
 Write-Host "Build complete!" -ForegroundColor Green
-Write-Host "  Folder: $Dist"
-Write-Host "  Run:    $Dist\Odysseus.exe"
+Write-Host "  Folder: $Repo\dist\Odysseus"
+Write-Host "  Run:    $Repo\dist\Odysseus\Odysseus.exe"
 if ($Debug) {
     Write-Host ""
-    Write-Host "DEBUG build: run $Dist\Odysseus.exe from a terminal to see live logs." -ForegroundColor Yellow
+    Write-Host "DEBUG build: run dist\Odysseus\Odysseus.exe from a terminal to see live logs." -ForegroundColor Yellow
 }
 Write-Host ""
 Write-Host "Tip: If the app does not start, use the -Debug switch so the console stays open."
