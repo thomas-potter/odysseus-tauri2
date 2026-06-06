@@ -8,14 +8,16 @@ Output:
     dist/Odysseus/          <- portable folder (zip this to share)
         Odysseus.exe
         static/
-        config/
         ...
+
+To debug hidden issues, change console=False to console=True below and rebuild.
 """
 from PyInstaller.utils.hooks import collect_all, collect_submodules
+import os
 
 block_cipher = None
 
-# ── Hidden imports & data collection ──
+# ── Hidden imports ──
 hiddenimports = [
     "uvicorn.logging",
     "uvicorn.loops.auto",
@@ -31,6 +33,12 @@ hiddenimports = [
     "qrcode.image.pil",
     "pyotp",
     "croniter",
+    # pywebview / Windows
+    "webview",
+    "webview.platforms.winforms",
+    "webview.platforms.edgechromium",
+    "clr",
+    "pythonnet",
 ]
 
 datas = [
@@ -42,11 +50,10 @@ datas = [
 ]
 binaries = []
 
-# Collect heavy packages that have data files, native libs, or hidden submodules.
+# Collect data files, native libs, and hidden submodules for key packages.
 for pkg in [
-    "chromadb",
-    "fastembed",
-    "onnxruntime",
+    "webview",         # native DLLs for pywebview
+    "onnxruntime",     # fastembed depends on this
     "httpx",
     "mcp",
     "icalendar",
@@ -56,7 +63,7 @@ for pkg in [
     "qrcode",
     "pyotp",
     "croniter",
-    "pytest",  # imported by some lazy test helpers
+    "pytest",
 ]:
     try:
         d, b, h = collect_all(pkg)
@@ -66,8 +73,22 @@ for pkg in [
     except Exception:
         pass
 
-# Ensure all local packages are fully pulled in (routes, core, src, etc.).
-for local in ["routes", "core", "src", "services", "integrations", "mcp_servers", "scripts", "companion"]:
+# fastembed distributes .onnx model files inside the package -- collect them.
+try:
+    import fastembed
+    import inspect
+    fastembed_dir = os.path.dirname(inspect.getfile(fastembed))
+    # Add the whole package directory so model blobs are preserved in the bundle
+    if os.path.isdir(fastembed_dir):
+        datas += [(fastembed_dir, "fastembed")]
+except Exception:
+    pass
+
+# All local Python packages (routes, core, src, services, etc.)
+for local in [
+    "routes", "core", "src", "services", "integrations",
+    "mcp_servers", "scripts", "companion",
+]:
     hiddenimports += collect_submodules(local)
 
 a = Analysis(
@@ -79,7 +100,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["torch", "torchvision", "tensorflow"],  # keep bundle smaller if present
+    excludes=["torch", "torchvision", "tensorflow"],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -97,14 +118,14 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,  # safer with ML/native libs; set True if you want smaller size
-    console=False,  # <-- change to True for a debug build with a visible terminal
+    upx=False,
+    console=False,   # <-- CHANGE TO True FOR DEBUG BUILDS
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # icon="docs/odysseus.ico",  # uncomment if you create a .ico
+    # icon="docs/odysseus.ico",
 )
 
 coll = COLLECT(

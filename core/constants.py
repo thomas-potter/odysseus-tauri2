@@ -1,11 +1,16 @@
 # src/constants.py
 """Application-wide constants and configuration values."""
 import os
+import sys
 
 APP_VERSION = "0.9.1"
 
 # Base paths
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/"
+if getattr(sys, "frozen", False):
+    # PyInstaller (.exe) — static files live next to the executable
+    BASE_DIR = os.path.dirname(sys.executable) + "/"
+else:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/"
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 DATA_DIR = os.path.join(BASE_DIR, "data")
 

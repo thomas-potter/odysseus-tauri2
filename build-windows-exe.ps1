@@ -4,15 +4,13 @@
 # Prerequisites:
 #   - Run launch-windows.ps1 once so the venv exists and .env / data/ are ready.
 #
-# Produces:
-#   dist/Odysseus/          <-- portable folder; zip this to share
-#     Odysseus.exe          <-- double-click to run
-#
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File .\build-windows-exe.ps1
 #   powershell -ExecutionPolicy Bypass -File .\build-windows-exe.ps1 -Clean
+#   powershell -ExecutionPolicy Bypass -File .\build-windows-exe.ps1 -Debug
 param(
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$Debug
 )
 
 $ErrorActionPreference = "Stop"
@@ -26,27 +24,50 @@ if (-not (Test-Path $VenvPy)) {
 }
 
 Write-Host "=== Odysseus Windows Desktop Build ===" -ForegroundColor Cyan
+if ($Debug) {
+    Write-Host "DEBUG MODE: console window will remain open so you can see errors." -ForegroundColor Yellow
+}
 
-# Install build deps
+# ── Install build deps ──
 Write-Host "Installing pyinstaller + pywebview into venv ..."
 & $VenvPy -m pip install --quiet pyinstaller pywebview
 
-# Clean old artifacts
+# ── Clean old artifacts ──
 if ($Clean) {
     Write-Host "Cleaning old build artifacts ..."
     Remove-Item -Recurse -Force "$Repo\build" -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force "$Repo\dist\Odysseus" -ErrorAction SilentlyContinue
 }
 
-# Run PyInstaller
+# ── DEBUG: temporarily flip console=True in the spec ──
+$SpecFile = "$Repo\Odysseus.spec"
+$OriginalSpec = $null
+if ($Debug) {
+    $OriginalSpec = Get-Content $SpecFile -Raw
+    if ($OriginalSpec -match 'console\s*=\s*False') {
+        $FixedSpec = $OriginalSpec -replace 'console\s*=\s*False', 'console = True'
+        Set-Content $SpecFile $FixedSpec -NoNewline
+        Write-Host "Temporary switch: console = True"
+    }
+}
+
+# ── Run PyInstaller ──
 Write-Host "Running PyInstaller (this may take a few minutes) ..."
 & $VenvPy -m PyInstaller "$Repo\Odysseus.spec" --clean --noconfirm
-if ($LASTEXITCODE -ne 0) {
+$BuildExit = $LASTEXITCODE
+
+# ── Restore spec if we modified it ──
+if ($Debug -and ($null -ne $OriginalSpec)) {
+    Set-Content $SpecFile $OriginalSpec -NoNewline
+    Write-Host "Restored original Odysseus.spec"
+}
+
+if ($BuildExit -ne 0) {
     Write-Host "PyInstaller failed. Scroll up for errors." -ForegroundColor Red
     exit 1
 }
 
-# Post-build: copy runtime files so the folder is self-contained
+# ── Post-build: copy runtime data ──
 $Dist = "$Repo\dist\Odysseus"
 
 if (Test-Path "$Repo\.env") {
@@ -58,13 +79,17 @@ if (Test-Path "$Repo\data") {
     Write-Host "Copied existing data/ into dist/Odysseus/"
 }
 
-# Done
+# ── Done ──
 Write-Host ""
 Write-Host "Build complete!" -ForegroundColor Green
 Write-Host "  Folder: $Dist"
 Write-Host "  Run:    $Dist\Odysseus.exe"
+if ($Debug) {
+    Write-Host ""
+    Write-Host "DEBUG build: run $Dist\Odysseus.exe from a terminal to see live logs." -ForegroundColor Yellow
+}
 Write-Host ""
-Write-Host "Tip: If the app does not start, rebuild with console=True in Odysseus.spec"
-Write-Host "     so you can see the server logs in a terminal window."
+Write-Host "Tip: If the app does not start, use the -Debug switch so the console stays open."
+Write-Host "     After it works, rebuild without -Debug for the final windowed version."
 Write-Host ""
 Write-Host "Share:   Zip the entire dist\Odysseus folder and send it."

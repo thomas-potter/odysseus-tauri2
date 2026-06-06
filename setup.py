@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Odysseus — first-time setup script.
+"""Odysseus -- first-time setup script.
 
 Creates data directories, initializes the database, and sets up an
 initial admin user. Safe to re-run (skips what already exists).
@@ -9,7 +9,9 @@ import os
 import shutil
 import sys
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# When frozen (e.g. PyInstaller), __file__ points inside the bundle, so the
+# normal directory math breaks. The launcher sets ODYSSEUS_BASE_DIR instead.
+BASE_DIR = os.environ.get("ODYSSEUS_BASE_DIR") or os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 DIRS = [
