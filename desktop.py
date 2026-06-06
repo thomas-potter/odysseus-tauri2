@@ -27,7 +27,12 @@ class TeeLogger:
         self.file = open(filepath, "a", encoding="utf-8")
         self.orig = orig
 
+    def isatty(self):
+        return False
+
     def write(self, data):
+        if isinstance(data, bytes):
+            data = data.decode("utf-8", errors="replace")
         self.file.write(data)
         self.file.flush()
         self.orig.write(data)
