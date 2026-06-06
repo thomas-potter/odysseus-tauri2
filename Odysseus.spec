@@ -28,7 +28,7 @@ hiddenimports = [
     "pydantic.deprecated.config",
     "pydantic._internal._config",
     "pydantic_settings",
-    "qrcode.image pil",
+    "qrcode.image.pil",
     "pyotp",
     "croniter",
 ]
